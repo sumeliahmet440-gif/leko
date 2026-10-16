@@ -165,7 +165,6 @@ class WebServer:
         self.thread = threading.Thread(target=self.srv.serve_forever, daemon=True)
         self.thread.start()
         return True, f"Telefon adresi: http://{local_ip()}:{port}"
-
     def stop(self):
         if self.srv:
             try:
