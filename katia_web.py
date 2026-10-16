@@ -2,7 +2,9 @@ from flask import Flask, render_template, request  # Flask kütüphanelerini iç
 
 app = Flask(__name__)  # 'app' değişkenini burada tanımlıyoruz!
 
-# ... burada var olan diğer kodların, rota (route) tanımların ve fonksiyonların yer alacak ...
+@app.route('/')
+def home():
+    return "Katia AI Web Sayfası Çalışıyor!"# ... burada var olan diğer kodların, rota (route) tanımların ve fonksiyonların yer alacak ...
 
 if __name__ == '__main__':
     import os
