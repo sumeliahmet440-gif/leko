@@ -1,4 +1,13 @@
-# -*- coding: utf-8 -*-
+from flask import Flask, render_template, request  # Flask kütüphanelerini içe aktarıyoruz
+
+app = Flask(__name__)  # 'app' değişkenini burada tanımlıyoruz!
+
+# ... burada var olan diğer kodların, rota (route) tanımların ve fonksiyonların yer alacak ...
+
+if __name__ == '__main__':
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)# -*- coding: utf-8 -*-
 """
 KATIA - Telefon / web arayüzü (iPhone Safari, Android, arkadaşlar için).
 
