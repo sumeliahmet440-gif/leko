@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Katia AI</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--a:#e8b04a;--b:#ff5fa2;--bg:#050403;--tx:#f2e6cf;--dim:color-mix(in srgb,var(--tx) 50%,transparent);--ln:color-mix(in srgb,var(--a) 28%,transparent)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:1px solid var(--ln);color:var(--a);padding:6px 10px;cursor:pointer;letter-spacing:.12em}
+button:hover,button.on{background:color-mix(in srgb,var(--a) 18%,transparent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--a)}
+.lb{color:var(--a);letter-spacing:.35em;font-size:12px;text-transform:uppercase}
+.sm{color:var(--dim);letter-spacing:.12em;font-size:12px}
+#app{display:grid;grid-template-columns:330px 1fr 390px;grid-template-rows:64px 1fr;height:100dvh;padding-top:env(safe-area-inset-top)}
+header{grid-column:1/4;display:flex;align-items:center;gap:18px;padding:0 20px;flex-wrap:nowrap;overflow:hidden}
+#pname{font-size:20px;letter-spacing:.45em;font-weight:700;color:var(--tx)}
+#state{color:var(--a);letter-spacing:.2em;font-size:12px}
+.sp{flex:1}
+header button{border:none;font-size:12px;white-space:nowrap}
+#micB.live{color:var(--b)}#clk{letter-spacing:.1em}
+aside{padding:10px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:22px}
+.box{border-bottom:1px solid var(--ln);padding-bottom:16px}
+#center{position:relative;display:flex;flex-direction:column;min-height:0}
+#orb{flex:1;width:100%;min-height:0}
+#log{padding:0 24px;text-align:center;min-height:130px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;font-size:15px}
+#log div{opacity:.4;font-family:system-ui,sans-serif}#log div:last-child{opacity:1}#log .u{color:var(--a)}#log .e{color:var(--b)}
+#log a{color:var(--a)}
+#inp{display:flex;gap:8px;margin:12px 24px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--ln);padding-top:12px}
+#inp input{flex:1;background:none;border:none;padding:8px;min-width:0}
+#cam{position:absolute;left:14px;bottom:170px;width:130px;border:1px solid var(--ln);display:none}
+#ring{width:130px;height:130px;margin:0 auto;position:relative}
+#ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+#ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;letter-spacing:.05em}
+.big{font-size:30px;font-weight:700}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.row button{flex:1}
+#wx{border:1px solid var(--ln);padding:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--a) 12%,transparent),transparent)}
+#wx .t{font-size:38px;font-weight:700}
+#bar{height:2px;background:var(--ln);position:relative;margin-top:12px}#bar i{position:absolute;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--a)}
+#map{height:150px;border:1px solid var(--ln);position:relative}
+#map::after{content:"";position:absolute;inset:0;background:var(--a);mix-blend-mode:multiply;z-index:500;pointer-events:none}
+#map .leaflet-tile-pane{filter:grayscale(1) invert(1) brightness(.75) contrast(1.2)}
+.leaflet-container{background:#000}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;place-items:center;z-index:9999;padding:16px}
+.modal.on{display:grid}
+.pan{background:var(--bg);border:1px solid var(--a);max-width:560px;width:100%;max-height:90dvh;overflow:auto;padding:22px}
+.set{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--ln)}
+.set input[type=color]{width:44px;height:28px;border:1px solid var(--ln);background:none;padding:0}
+.set select{background:var(--bg);border:1px solid var(--ln);padding:4px;max-width:200px}
+.sw{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.sw i{width:26px;height:26px;border-radius:50%;cursor:pointer;border:1px solid var(--tx)}
+.mod{border:1px solid var(--ln);padding:14px;margin-top:10px;cursor:pointer;display:block;width:100%;text-align:left;letter-spacing:0}
+.mod.on{border-color:var(--a);box-shadow:0 0 18px -4px var(--a)}
+.mod b{letter-spacing:.3em;display:block;margin-bottom:4px}
+.leaflet-control-attribution{font-size:8px;background:transparent!important;color:var(--dim)!important}
+@media(max-width:900px){
+ html,body{overflow:auto}
+ #app{display:flex;flex-direction:column;height:auto;min-height:100dvh}
+ header{gap:10px;overflow-x:auto;min-height:56px;flex:none}#clk{display:none}
+ #center{order:1;height:82dvh;flex:none}aside{order:2;overflow:visible;padding:16px}#cam{bottom:200px}
+ #log{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <span id="pname">KATIA</span><span id="state">HAZIR</span><span class="sp"></span>
+ <button id="micB">● MİKROFON KAPALI</button>
+ <button id="camB">● KAMERA KAPALI</button>
+ <button id="modB">AI MODELLERİ</button>
+ <button id="setB">AYARLAR</button>
+ <span id="clk" class="sm"></span>
+</header>
+
+<aside id="left">
+ <div class="box"><div id="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--ln)" stroke-width="3"/><circle id="sec" cx="50" cy="50" r="46" fill="none" stroke="var(--a)" stroke-width="3" stroke-dasharray="289" stroke-dashoffset="289"/></svg><b id="bigclk">--:--</b></div>
+  <div class="lb" style="margin-top:14px">Zaman</div><div class="sm" id="date"></div></div>
+ <div class="box"><div class="lb">Sistem</div>
+  <div class="sm" style="margin-top:10px;line-height:1.9">CPU <span id="cpu">-</span><br>PİL <span id="bat">-</span><br>RAM <span id="ram">-</span><br>DİSK <span id="dsk">-</span></div></div>
+ <div class="box"><div id="ring" style="width:150px;height:150px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--ln)" stroke-width="3"/><circle id="tring" cx="50" cy="50" r="46" fill="none" stroke="var(--a)" stroke-width="3" stroke-dasharray="289" stroke-dashoffset="289"/></svg><b id="tdisp" style="font-size:22px">HAZIR</b></div>
+  <div class="lb" style="margin-top:14px">Zamanlayıcı</div>
+  <div class="sm">"On dakikalık zamanlayıcı kur" de</div>
+  <div class="row"><button data-m="1">1 DK</button><button data-m="5">5 DK</button><button data-m="10">10 DK</button><button data-m="25">25 DK</button></div>
+  <div class="row"><button id="swB">⏱ KRONOMETRE</button><button id="stopT">DURDUR</button></div></div>
+</aside>
+
+<main id="center">
+ <canvas id="orb"></canvas>
+ <video id="cam" autoplay playsinline muted></video>
+ <div id="log"></div>
+ <form id="inp"><input id="txt" placeholder="Konuş ya da yaz…" autocomplete="off"><button type="submit">YAZ</button></form>
+</main>
+
+<aside id="right">
+ <div id="wx"><div style="display:flex;justify-content:space-between"><span class="t" id="wt">--°</span><span id="wi" style="font-size:24px"></span></div>
+  <div class="lb" id="wc" style="margin-top:6px">KONUM</div><div class="sm" id="wd">Hava durumu yükleniyor…</div>
+  <div id="bar"><i id="dot"></i></div><div class="sm" style="display:flex;justify-content:space-between;margin-top:8px"><span id="wmin"></span><span id="wmax"></span></div>
+  <button id="locB" style="margin-top:10px;display:none;width:100%">KONUM İZNİ VER</button></div>
+ <div class="box"><div class="lb">Takvim</div><div style="display:flex;justify-content:space-between;align-items:end"><div><span class="big" id="evn">0</span> <span class="sm">BUGÜN</span></div><button id="addEv">+</button></div><div class="sm" id="evl" style="margin-top:8px"></div></div>
+ <div class="box"><div class="lb">Anımsatıcılar</div><div style="display:flex;justify-content:space-between;align-items:end"><div><span class="big" id="rmn">0</span> <span class="sm">AÇIK</span></div><button id="addRm">+</button></div><div class="sm" id="rml" style="margin-top:8px"></div></div>
+ <div><div id="map"></div><div class="lb" style="margin-top:10px">Harita</div><div class="sm" id="mapl"></div></div>
+</aside>
+</div>
+
+<div class="modal" id="mMod"><div class="pan"><div class="lb">AI Modelleri</div><div id="mods"></div><button style="margin-top:14px;width:100%" data-close>KAPAT</button></div></div>
+
+<div class="modal" id="mSet"><div class="pan"><div class="lb">Ayarlar</div>
+ <div class="sw" id="sw"></div>
+ <div class="set">Ana renk<input type="color" id="cA"></div>
+ <div class="set">Vurgu / mikrofon rengi<input type="color" id="cB"></div>
+ <div class="set">Arka plan<input type="color" id="cBg"></div>
+ <div class="set">Yazı rengi<input type="color" id="cTx"></div>
+ <div class="set">Sesli cevap<input type="checkbox" id="sVoice"></div>
+ <div class="set">Konuşma hızı<input type="range" id="sRate" min=".6" max="1.6" step=".1"></div>
+ <div class="set">Ses tonu<input type="range" id="sPitch" min=".5" max="1.8" step=".1"></div>
+ <div class="set">Ses<select id="sVoiceSel"></select></div>
+ <div class="set">Groq modeli<select id="sModel"><option>llama-3.3-70b-versatile</option><option>llama-3.1-8b-instant</option></select></div>
+ <div class="set">Orb hareketi<input type="range" id="sOrb" min=".2" max="2.5" step=".1"></div>
+ <div class="row"><button id="rst">SIFIRLA</button><button data-close>KAPAT</button></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const $=s=>document.querySelector(s), ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}}, sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const NAME='Katia';
+const P={
+ jarvis:{n:'JARVIS',c:'#4fc3ff',d:'Resmî ve zarif. Sana "efendim" diye hitap eder.',sys:'Kullanıcıya her zaman "efendim" diye hitap et. Zarif, kibar, zeki ve kısa konuş.'},
+ friday:{n:'FRIDAY',c:'#e8b04a',d:'Sakin ve net. Sana normal, doğal şekilde hitap eder.',sys:'Kullanıcıya normal, doğal ve samimi bir dille "sen" diye hitap et. Net ve kısa konuş.'},
+ katia:{n:'KATIA',c:'#ff5fa2',d:'Arkadaş canlısı. Sana "knk" diye hitap eder.',sys:'Kullanıcıya "knk" diye hitap et. Çok arkadaş canlısı, enerjik, esprili ve samimi konuş.'}
+};
+const DEF={persona:'katia',a:'#ff5fa2',b:'#ffd98a',bg:'#050403',tx:'#f2e6cf',voice:true,rate:1,pitch:1,vname:'',model:'llama-3.3-70b-versatile',orb:1};
+let S=Object.assign({},DEF,ls('katia_s',{}));
+const PRE=['#e8b04a','#4fc3ff','#ff5fa2','#5dffb0','#b48cff','#ff6a3d','#ffffff'];
+
+/* ---------- ayarlar ---------- */
+function apply(){
+ const r=document.documentElement.style;r.setProperty('--a',S.a);r.setProperty('--b',S.b);r.setProperty('--bg',S.bg);r.setProperty('--tx',S.tx);
+ $('#pname').textContent=P[S.persona].n;sv('katia_s',S);
+ document.querySelector('meta[name=theme-color]').content=S.bg;
+ document.querySelectorAll('.mod').forEach(m=>m.classList.toggle('on',m.dataset.p===S.persona));
+}
+$('#sw').innerHTML=PRE.map(c=>`<i style="background:${c}" data-c="${c}"></i>`).join('');
+$('#sw').onclick=e=>{if(e.target.dataset.c){S.a=e.target.dataset.c;sync();apply()}};
+function sync(){$('#cA').value=S.a;$('#cB').value=S.b;$('#cBg').value=S.bg;$('#cTx').value=S.tx;$('#sVoice').checked=S.voice;$('#sRate').value=S.rate;$('#sPitch').value=S.pitch;$('#sModel').value=S.model;$('#sOrb').value=S.orb;$('#sVoiceSel').value=S.vname}
+[['cA','a'],['cB','b'],['cBg','bg'],['cTx','tx']].forEach(([i,k])=>$('#'+i).oninput=e=>{S[k]=e.target.value;apply()});
+$('#sVoice').onchange=e=>{S.voice=e.target.checked;apply()};
+$('#sRate').oninput=e=>{S.rate=+e.target.value;apply()};
+$('#sPitch').oninput=e=>{S.pitch=+e.target.value;apply()};
+$('#sModel').onchange=e=>{S.model=e.target.value;apply()};
+$('#sOrb').oninput=e=>{S.orb=+e.target.value;apply()};
+$('#sVoiceSel').onchange=e=>{S.vname=e.target.value;apply()};
+$('#rst').onclick=()=>{S=Object.assign({},DEF);sync();apply()};
+$('#mods').innerHTML=Object.entries(P).map(([k,p])=>`<button class="mod" data-p="${k}"><b style="color:${p.c}">${p.n}</b><span class="sm">${p.d}</span></button>`).join('');
+$('#mods').onclick=e=>{const m=e.target.closest('.mod');if(!m)return;S.persona=m.dataset.p;S.a=P[S.persona].c;hist=[];sync();apply();$('#mMod').classList.remove('on');say(`${P[S.persona].n} devrede.`,false)};
+$('#modB').onclick=()=>$('#mMod').classList.add('on');
+$('#setB').onclick=()=>{sync();$('#mSet').classList.add('on')};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on')));
+document.querySelectorAll('.modal').forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove('on')});
+
+/* ---------- ses çıkışı ---------- */
+let voices=[];
+function loadV(){voices=speechSynthesis.getVoices();$('#sVoiceSel').innerHTML='<option value="">Otomatik (Türkçe)</option>'+voices.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');$('#sVoiceSel').value=S.vname}
+if('speechSynthesis' in window){loadV();speechSynthesis.onvoiceschanged=loadV}
+let speaking=false,busy=false,listening=false,state='HAZIR';
+function setState(s){state=s;$('#state').textContent=s}
+function speak(text){
+ return new Promise(res=>{
+  if(!S.voice||!('speechSynthesis' in window)){res();return}
+  const clean=text.replace(/https?:\/\/\S+/g,'bağlantı').replace(/[*_`#>\[\]()]/g,'').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu,'');
+  const parts=clean.match(/[^.!?\n]+[.!?]*/g)||[clean];
+  speechSynthesis.cancel();speaking=true;setState('KONUŞUYOR');
+  parts.forEach((p,i)=>{
+   const u=new SpeechSynthesisUtterance(p.trim());u.lang='tr-TR';u.rate=S.rate;u.pitch=S.pitch;
+   const v=voices.find(v=>v.name===S.vname)||voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('tr'));if(v)u.voice=v;
+   if(i===parts.length-1){u.onend=u.onerror=()=>{speaking=false;setState('HAZIR');res()}}
+   speechSynthesis.speak(u);
+  });
+ });
+}
+
+/* ---------- ses girişi ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec;
+function updMic(){const b=$('#micB');b.textContent=listening?'● MİKROFON AÇIK':'● MİKROFON KAPALI';b.classList.toggle('live',listening)}
+function startRec(){
+ if(!SR||!listening||speaking||busy)return;
+ try{rec=new SR();rec.lang='tr-TR';rec.interimResults=false;
+  rec.onstart=()=>setState('DİNLİYOR');
+  rec.onresult=e=>{const t=e.results[0][0].transcript;if(t.trim())handle(t.trim())};
+  rec.onend=()=>{if(state==='DİNLİYOR')setState('HAZIR');setTimeout(startRec,300)};
+  rec.onerror=e=>{if(e.error==='not-allowed'||e.error==='service-not-allowed'){listening=false;updMic();toast('Mikrofon izni verilmedi.')}};
+  rec.start()}catch(e){}
+}
+$('#micB').onclick=()=>{
+ if(!SR){toast('Bu tarayıcı ses tanımayı desteklemiyor. Chrome veya Safari dene.');return}
+ listening=!listening;updMic();
+ if(listening){speechSynthesis&&speechSynthesis.speak(new SpeechSynthesisUtterance(''));startRec()}else{try{rec.abort()}catch(e){}setState('HAZIR')}
+};
+let stream;
+$('#camB').onclick=async()=>{
+ const b=$('#camB'),v=$('#cam');
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;v.style.display='none';b.textContent='● KAMERA KAPALI';return}
+ try{stream=await navigator.mediaDevices.getUserMedia({video:true});v.srcObject=stream;v.style.display='block';b.textContent='● KAMERA AÇIK'}catch(e){toast('Kamera izni verilmedi.')}
+};
+
+/* ---------- sohbet ---------- */
+let hist=[];
+function say(t,speakIt=true,cls=''){
+ const d=document.createElement('div');d.className=cls;
+ d.innerHTML=esc(t).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+ const L=$('#log');L.appendChild(d);while(L.children.length>3)L.firstChild.remove();
+ return speakIt?speak(t):Promise.resolve();
+}
+const toast=t=>say(t,false,'e');
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+$('#inp').onsubmit=e=>{e.preventDefault();const t=$('#txt').value.trim();if(t){$('#txt').value='';handle(t)}};
+
+const NW=new Map(Object.entries({sıfır:0,bir:1,iki:2,üç:3,dört:4,beş:5,altı:6,yedi:7,sekiz:8,dokuz:9,on:10,yirmi:20,otuz:30,kırk:40,elli:50,altmış:60}));
+function numify(t){const w=t.split(/\s+/),o=[];for(let i=0;i<w.length;i++){if(NW.has(w[i])){let n=NW.get(w[i]);if(n>=10&&NW.has(w[i+1])&&NW.get(w[i+1])<10&&NW.get(w[i+1])>0){n+=NW.get(w[i+1]);i++}o.push(n)}else o.push(w[i])}return o.join(' ')}
+const U={saat:3600,dakika:60,dk:60,saniye:1,sn:1};
+
+async function handle(text){
+ if(busy)return;busy=true;try{rec&&rec.abort()}catch(e){}
+ say(text,false,'u');setState('DÜŞÜNÜYOR');
+ const reply=await local(text)??await ai(text);
+ if(reply){await say(reply)}
+ busy=false;setState('HAZIR');startRec();
+}
+async function local(t){
+ const l=numify(t.toLocaleLowerCase('tr-TR'));
+ const m=l.match(/(\d+)\s*(saat|dakika|dk|saniye|sn)\w*/);
+ if(/sus$|sustur|konuşmayı kes/.test(l)){speechSynthesis.cancel();return null}
+ if(/zamanlay|sayaç|geri sayım/.test(l)&&m){startT(+m[1]*U[m[2]]);return `${m[1]} ${m[2]} için zamanlayıcıyı başlattım.`}
+ if(/zamanlayıcı.*(durdur|iptal|kapat)/.test(l)){stopT();return 'Zamanlayıcıyı durdurdum.'}
+ if(/kronometre/.test(l)){toggleSW();return sw.run?'Kronometre başladı.':'Kronometre durdu.'}
+ const r=l.match(/(\d+)\s*(saat|dakika|dk|saniye|sn)\w*\s*sonra\s*(.+?)\s*hatırlat/);
+ if(r){addR(r[3],Date.now()+r[1]*U[r[2]]*1000);return `Tamam, ${r[1]} ${r[2]} sonra "${r[3]}" diye hatırlatacağım.`}
+ const ev=t.match(/takvime?\s*(?:ekle)?[:,]?\s*(.+)/i);
+ if(/takvim/i.test(t)&&/ekle/i.test(t)&&ev){addE(ev[1].replace(/\s*ekle$/i,''));return 'Bugünün takvimine ekledim.'}
+ const url=t.match(/(https?:\/\/[^\s]+|\b[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|app|io|tr|ai|dev|co)\b[^\s]*)/i);
+ if(url&&/aç|git|gir/i.test(t)){let u=url[1];if(!/^https?:/.test(u))u='https://'+u;
+  const w=window.open(u,'_blank');
+  if(!w)say('Tarayıcı açılışı engelledi, buradaki bağlantıya dokun: '+u,false);
+  return 'İstediğiniz siteyi açıyorum.'.replace('İstediğiniz',P[S.persona].n==='JARVIS'?'İstediğiniz':'İstediğin')}
+ return null;
+}
+async function ai(text){
+ hist.push({role:'user',content:text});hist=hist.slice(-14);
+ const sys=`Sen ${NAME} AI adlı Türkçe sesli yapay zeka asistanısın. Şu an "${P[S.persona].n}" kişiliğindesin. ${P[S.persona].sys} Cevapların sesli okunacak: kısa (en fazla 3-4 cümle), düz metin, madde işareti ve emoji kullanma. Şu an: ${new Date().toLocaleString('tr-TR')}. Konum: ${W.city||'bilinmiyor'}. Hava: ${W.txt||'bilinmiyor'}.`;
+ try{
+  const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:S.model,messages:[{role:'system',content:sys},...hist]})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||'Hata');
+  hist.push({role:'assistant',content:d.reply});return d.reply;
+ }catch(e){hist.pop();toast('Hata: '+e.message);return null}
+}
+
+/* ---------- zamanlayıcı & kronometre ---------- */
+let T={end:0,tot:0},sw={run:false,t0:0,el:0};
+const f=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return(h?h+':':'')+String(m).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+function startT(s){sw.run=false;T={end:Date.now()+s*1000,tot:s}}
+function stopT(){T={end:0,tot:0}}
+function toggleSW(){T={end:0,tot:0};if(sw.run){sw.el+=Date.now()-sw.t0;sw.run=false}else{sw.t0=Date.now();sw.run=true}}
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>startT(+b.dataset.m*60));
+$('#swB').onclick=toggleSW;$('#stopT').onclick=()=>{stopT();sw={run:false,t0:0,el:0}};
+function beep(){try{const c=new AudioContext(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.2;o.start();setTimeout(()=>{o.stop();c.close()},600)}catch(e){}}
+function tick(){
+ const n=new Date();
+ $('#clk').textContent=$('#bigclk').textContent=n.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+ $('#date').textContent=n.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+ $('#sec').style.strokeDashoffset=289*(1-n.getSeconds()/60);
+ const tr=$('#tring'),td=$('#tdisp');
+ if(T.end){const left=(T.end-Date.now())/1000;if(left<=0){stopT();beep();say('Zamanlayıcı bitti!')}else{td.textContent=f(left);tr.style.strokeDashoffset=289*(1-left/T.tot)}}
+ else if(sw.run||sw.el){td.textContent=f((sw.el+(sw.run?Date.now()-sw.t0:0))/1000);tr.style.strokeDashoffset=sw.run?289*(1-(Date.now()%60000)/60000):0}
+ else{td.textContent='HAZIR';tr.style.strokeDashoffset=289}
+ R=R.filter(r=>{if(r.at<=Date.now()){beep();say(`Hatırlatma: ${r.t}`);return false}return true});sv('katia_r',R);drawLists();
+}
+setInterval(tick,500);
+
+/* ---------- takvim & anımsatıcı ---------- */
+let R=ls('katia_r',[]),E=ls('katia_e',[]);
+const day=()=>new Date().toISOString().slice(0,10);
+function addR(t,at){R.push({t,at});sv('katia_r',R);drawLists()}
+function addE(t){E.push({t,d:day()});sv('katia_e',E);drawLists()}
+function drawLists(){
+ const te=E.filter(e=>e.d===day());
+ $('#evn').textContent=te.length;$('#evl').innerHTML=te.length?te.map(e=>esc(e.t)).join('<br>'):'Bugün takviminde etkinlik yok.';
+ $('#rmn').textContent=R.length;$('#rml').innerHTML=R.length?R.map(r=>esc(r.t)+' · '+new Date(r.at).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})).join('<br>'):'Bekleyen anımsatıcı yok.';
+}
+$('#addEv').onclick=()=>{const t=prompt('Bugünkü etkinlik:');if(t)addE(t)};
+$('#addRm').onclick=()=>{const t=prompt('Neyi hatırlatayım?');if(!t)return;const m=prompt('Kaç dakika sonra?','10');if(+m>0)addR(t,Date.now()+m*60000)};
+
+/* ---------- hava & konum ---------- */
+let W={},map,mk;
+const WC={0:['Açık','☀'],1:['Az bulutlu','🌤'],2:['Parçalı bulutlu','⛅'],3:['Kapalı','☁'],45:['Sisli','🌫'],48:['Sisli','🌫'],51:['Hafif çisenti','🌦'],53:['Çisenti','🌦'],55:['Yoğun çisenti','🌦'],61:['Hafif yağmur','🌧'],63:['Yağmurlu','🌧'],65:['Şiddetli yağmur','🌧'],71:['Hafif kar','🌨'],73:['Karlı','🌨'],75:['Yoğun kar','❄'],80:['Sağanak','🌦'],81:['Sağanak','🌧'],82:['Şiddetli sağanak','⛈'],95:['Gök gürültülü fırtına','⛈'],96:['Dolu','⛈'],99:['Dolu','⛈']};
+async function weather(lat,lon,known){
+ try{
+  const [w,g]=await Promise.all([
+   fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto`).then(r=>r.json()),
+   fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=tr`).then(r=>r.json()).catch(()=>({}))]);
+  const t=Math.round(w.current.temperature_2m),mn=Math.round(w.daily.temperature_2m_min[0]),mx=Math.round(w.daily.temperature_2m_max[0]),c=WC[w.current.weather_code]||['Bilinmiyor','·'];
+  W={city:g.locality||g.city||'Konum',txt:`${t}°C, ${c[0].toLowerCase()}`};
+  $('#wt').textContent=t+'°';$('#wi').textContent=c[1];$('#wc').textContent=W.city.toUpperCase();$('#wd').textContent=c[0].toLowerCase();
+  $('#wmin').textContent=mn+'°';$('#wmax').textContent=mx+'°';$('#dot').style.left=Math.min(98,Math.max(0,(t-mn)/Math.max(1,mx-mn)*100))+'%';
+  $('#locB').style.display=known?'none':'block';
+  $('#mapl').textContent=`${W.city.toUpperCase()} · ${(+lat).toFixed(3)}° ${(+lon).toFixed(3)}°`;
+  if(!map){map=L.map('map',{zoomControl:false,attributionControl:true}).setView([lat,lon],12);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);mk=L.circleMarker([lat,lon],{radius:6,color:'#fff',fillOpacity:1}).addTo(map)}
+  else{map.setView([lat,lon]);mk.setLatLng([lat,lon])}
+ }catch(e){$('#wd').textContent='Hava durumu alınamadı.'}
+}
+let pos=null;
+function locate(){
+ navigator.geolocation.getCurrentPosition(p=>{pos=[p.coords.latitude,p.coords.longitude];weather(...pos,true)},()=>{$('#wd').textContent='Konum izni verilmedi; İstanbul gösteriliyor.';weather(41.0082,28.9784,false)},{timeout:10000,maximumAge:600000});
+}
+$('#locB').onclick=locate;
+if(navigator.geolocation){
+ if(navigator.permissions)navigator.permissions.query({name:'geolocation'}).then(p=>{p.state==='granted'?locate():(weather(41.0082,28.9784,false))}).catch(()=>locate());else locate();
+}else weather(41.0082,28.9784,false);
+setInterval(()=>pos&&weather(...pos,true),600000);
+
+/* ---------- sistem ---------- */
+let last=performance.now(),lag=0;
+setInterval(()=>{const n=performance.now();lag=Math.min(100,Math.max(1,Math.round((n-last-1000)/5)));last=n;$('#cpu').textContent='%'+lag},1000);
+(async()=>{
+ const upd=async()=>{
+  if(navigator.getBattery){const b=await navigator.getBattery();$('#bat').textContent='%'+Math.round(b.level*100)+(b.charging?' · şarj':'')}else $('#bat').textContent='desteklenmiyor';
+  const pm=performance.memory;$('#ram').textContent=pm?'%'+Math.round(pm.usedJSHeapSize/pm.jsHeapSizeLimit*100):(navigator.deviceMemory?navigator.deviceMemory+' GB':'-');
+  if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();$('#dsk').textContent='%'+Math.max(1,Math.round(e.usage/e.quota*100))+' dolu'}
+ };upd();setInterval(upd,15000);
+})();
+
+/* ---------- orb ---------- */
+const cv=$('#orb'),cx=cv.getContext('2d');
+const rgb=h=>{h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.substr(i,2),16)).join(',')};
+function draw(t){
+ const dpr=devicePixelRatio||1,w=cv.width=cv.clientWidth*dpr,h=cv.height=cv.clientHeight*dpr;
+ const ra=rgb(S.a),rb=rgb(S.b),X=w/2,Y=h/2,Rr=Math.min(w,h)*.3;
+ const amp=state==='KONUŞUYOR'?1+Math.random()*.6:state==='DİNLİYOR'?.9:state==='DÜŞÜNÜYOR'?1.4:.35;
+ const sp=S.orb*(state==='DÜŞÜNÜYOR'?3:1);
+ for(let i=0;i<5;i++){
+  cx.beginPath();
+  for(let a=0;a<=6.32;a+=.05){
+   const r=Rr*(.55+.14*i)*(1+.1*amp*Math.sin(a*(2+i)+t*.0008*sp*(i%2?1:-1)+i));
+   const px=X+Math.cos(a+t*.0002*sp*(i+1))*r,py=Y+Math.sin(a+t*.0002*sp*(i+1))*r;a?cx.lineTo(px,py):cx.moveTo(px,py)}
+  cx.strokeStyle=`rgba(${i==4?rb:ra},${.2+.08*i})`;cx.lineWidth=2*dpr;cx.stroke();
+ }
+ const g=cx.createRadialGradient(X,Y,0,X,Y,Rr*(.5+.15*amp));
+ g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.12,`rgba(${ra},.9)`);g.addColorStop(1,`rgba(${ra},0)`);
+ cx.fillStyle=g;cx.beginPath();cx.arc(X,Y,Rr*(.5+.15*amp),0,6.3);cx.fill();
+ requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+apply();drawLists();tick();
+const hello={jarvis:'Hoş geldiniz efendim. Size nasıl yardımcı olabilirim?',friday:'Merhaba, ben Katia. Nasıl yardımcı olabilirim?',katia:'Selam knk! Ben Katia, ne yapıyoruz bugün?'};
+say(hello[S.persona],false);
+</script>
+</body>
+</html>
